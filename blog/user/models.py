@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.safestring import mark_safe
 
 
 def sex_control(sex):
@@ -12,7 +13,7 @@ def sex_control(sex):
 
 class UserManager(BaseUserManager):
 
-    def create_user(self, name, surname, email, phone_number, date_of_birth, sex, creation, password=None):
+    def create_user(self, name, surname, email, phone_number, date_of_birth, sex, creation, photo, password=None):
         if not email:
             return ValueError("Users must have email.")
         if not sex_control(sex.lower()):
@@ -26,11 +27,12 @@ class UserManager(BaseUserManager):
         user.date_of_birth = date_of_birth
         user.sex = sex
         user.creation = creation
+        user.photo = photo
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, name, surname, email, phone_number, date_of_birth, sex, creation, password=None):
+    def create_superuser(self, name, surname, email, phone_number, date_of_birth, sex, creation, photo, password=None):
         user = self.create_user(
             name,
             surname,
@@ -39,6 +41,7 @@ class UserManager(BaseUserManager):
             date_of_birth,
             sex,
             creation,
+            photo,
             password
         )
         user.is_admin = True
@@ -57,7 +60,7 @@ class User(AbstractBaseUser):
     date_of_birth = models.DateField()
     sex = models.CharField(max_length=50, verbose_name="Sex", blank=True, null=True)
     creation = models.DateTimeField(auto_now_add=True, auto_now=False, verbose_name="Time of creation", blank=True)
-
+    photo = models.ImageField(upload_to='photos/%Y/%m/%d/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
@@ -73,6 +76,16 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.email
+
+    def get_avatar(self):
+        if not self.photo:
+            return '/static/images/user_icon.png'
+        return self.photo.url
+
+    def avatar_tag(self):
+        return mark_safe('<img src="%s" width="50" height="50" />' % self.get_avatar())
+
+    avatar_tag.short_description = 'Avatar'
 
     def has_perm(self, perm, obj=None):
         # Simplest possible answer: Yes, always

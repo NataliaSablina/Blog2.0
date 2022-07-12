@@ -7,17 +7,14 @@ from django import forms
 
 
 class UserCreationForm(forms.ModelForm):
-    """A form for creating new users. Includes all the required
-    fields, plus a repeated password."""
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
     password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
 
     class Meta:
         model = User
-        fields = ('name', 'surname', 'email', 'phone_number', 'date_of_birth', 'sex')
+        fields = ('name', 'surname', 'email', 'phone_number', 'date_of_birth', 'sex', 'photo', 'is_active', 'is_admin')
 
     def clean_password2(self):
-        # Check that the two password entries match
         password1 = self.cleaned_data.get("password1")
         password2 = self.cleaned_data.get("password2")
         if password1 and password2 and password1 != password2:
@@ -37,35 +34,34 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('name', 'surname', 'phone_number', 'email', 'password', 'date_of_birth', 'is_active', 'is_admin')
+        fields = ('name', 'surname', 'phone_number', 'email', 'password', 'date_of_birth', 'photo',
+                  'is_active', 'is_admin')
 
 
 class UserAdmin(BaseUserAdmin):
-    # The forms to add and change user instances
     form = UserChangeForm
     add_form = UserCreationForm
 
-    # The fields to be used in displaying the User model.
-    # These override the definitions on the base UserAdmin
-    # that reference specific fields on auth.User.
-    list_display = ('name', 'surname', 'creation', 'phone_number', 'email', 'date_of_birth', 'is_admin')
+    list_display = ('name', 'surname', 'creation', 'phone_number', 'email', 'date_of_birth', 'avatar_tag', 'is_admin')
     list_filter = ('is_admin',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('name', 'surname', 'creation', 'phone_number', 'date_of_birth',)}),
+        ('Personal info', {'fields': ('name', 'surname', 'phone_number', 'date_of_birth', 'avatar_tag', )}),
         ('Permissions', {'fields': ('is_admin',)}),
     )
-    # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
-    # overrides get_fieldsets to use this attribute when creating a user.
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('name', 'surname', 'creation', 'phone_number', 'email', 'date_of_birth', 'password1', 'password2'),
+            'fields': ('name', 'surname', 'phone_number', 'email', 'date_of_birth', 'avatar_tag',
+                       'password1', 'password2', 'is_admin'),
         }),
     )
     search_fields = ('email',)
     ordering = ('email',)
     filter_horizontal = ()
+
+    readonly_fields = ['avatar_tag']
 
 
 admin.site.register(User, UserAdmin)
