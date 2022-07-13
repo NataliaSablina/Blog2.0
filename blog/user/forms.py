@@ -1,7 +1,4 @@
 from django import forms
-from django.contrib import messages
-from django.template.context_processors import request
-
 from .models import User
 
 
