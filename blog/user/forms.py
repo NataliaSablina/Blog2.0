@@ -22,3 +22,12 @@ class RegistrationForm(forms.ModelForm):
 class AuthenticationForm(forms.Form):
     email = forms.EmailField(label="Email")
     password = forms.CharField(label="Password", widget=forms.PasswordInput())
+
+
+class HelpUserForm(forms.Form):
+    email = forms.EmailField(label='From', required=True)
+    message = forms.CharField(label='How can we help?', required=True)
+
+
+class ContactForm(forms.Form):
+    to_email = forms.EmailField(label='Email', required=True)
