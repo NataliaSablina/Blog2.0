@@ -1,6 +1,7 @@
 from django.contrib.auth import login, authenticate
 from django.shortcuts import render, redirect
 from django.views import View
+from django.contrib import messages
 from user.forms import RegistrationForm, AuthenticationForm
 from user.models import User
 
@@ -14,15 +15,17 @@ class RegistrationView(View):
         return render(request, "registration_form.html", context)
 
     def post(self, request):
-        reg_from = RegistrationForm(request.POST)
-        if reg_from.is_valid():
-            user = reg_from.save(commit=False)
-            user.set_password(reg_from.cleaned_data["password2"])
+        reg_form = RegistrationForm(request.POST)
+        if reg_form.is_valid():
+            user = reg_form.save(commit=False)
+            user.set_password(reg_form.cleaned_data["password2"])
             user.save()
             login(request, user)
             return redirect('user_account', user.pk)
         else:
-            print(reg_from.errors)
+            for field, errors in reg_form.errors.items():
+                messages.error(request, errors)
+            return redirect('registration')
 
 
 class AuthenticationView(View):
@@ -42,8 +45,13 @@ class AuthenticationView(View):
             if user is not None and user.is_active:
                 login(request, user)
                 return redirect('user_account', user.pk)
+            else:
+                messages.error(request, "You entered wrong email or password")
+                return redirect('authentication')
         else:
-            print(auth_form.errors)
+            for field, errors in auth_form.errors.items():
+                messages.error(request, errors)
+            return redirect('authentication')
 
 
 class UserAccountView(View):
