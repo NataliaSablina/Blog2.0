@@ -1,14 +1,18 @@
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import HttpResponse, BadHeaderError
 from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.views import View
 from django.contrib import messages
 
 from blog import settings
 from post.models import Post
-from user.forms import RegistrationForm, AuthenticationForm, HelpUserForm
+from user.forms import RegistrationForm, AuthenticationForm, HelpUserForm, ContactForm
 from user.models import User
 
 
@@ -102,7 +106,42 @@ class HelpUserView(LoginRequiredMixin, View):
 
 class ResetPasswordView(View):
     def get(self, request):
-        pass
+        form = ContactForm()
+        context = {
+            "form": form,
+        }
+        return render(request, "reset_password.html", context)
 
     def post(self, request):
-        pass
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            subject = "Reset password link"
+            message = "Reset password link:"
+            to_email = form.cleaned_data['to_email']
+            email_template_name = "message_html.html"
+            user = User.objects.get(email=to_email)
+            cont = {
+                "email": user.email,
+                'domain': '127.0.0.1:8000',  # доменное имя сайта
+                'site_name': 'Blog',  # название своего сайта
+                "uid": urlsafe_base64_encode(force_bytes(user.pk)),  # шифруем идентификатор
+                "user": to_email,  # чтобы обратиться в письме по логину пользователя
+                'token': default_token_generator.make_token(user),  # генерируем токен
+                'protocol': 'http',
+            }
+            ref = cont.get('protocol') + '://' + cont.get('domain') + '/user/' + 'password_reset_confirm/' + str(
+                cont.get('uid')) + '/' + str(cont.get('token'))
+            msg_html = render_to_string(email_template_name, {"ref": ref})
+            try:
+                # send_mail(subject, message=ref, from_email=settings.EMAIL_HOST_USER, recipient_list=[to_email],
+                #           fail_silently=False)
+                send_mail(subject, message=message, from_email=settings.EMAIL_HOST_USER, recipient_list=[to_email],
+                          fail_silently=False, html_message=msg_html)
+                # send_mail(subject, message, from_email, [settings.EMAIL_HOST_USER], fail_silently=False)
+                messages.error(request, 'Mail is sent successful')
+            except BadHeaderError:
+                return HttpResponse('Ошибка в теме письма.')
+            return redirect('home_page')
+        else:
+            messages.error(request, "Wrong")
+            return redirect('password_reset')
